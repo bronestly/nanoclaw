@@ -27,20 +27,28 @@ const MAX_CHUNK_CHARS = 1000;
 const OLLAMA_BIN = '/opt/homebrew/bin/ollama';
 
 // Dirs to skip when walking the vault
-const SKIP_DIRS = new Set(['.git', '.obsidian', '.stfolder', '.vault-search', 'node_modules']);
+const SKIP_DIRS = new Set([
+  '.git',
+  '.obsidian',
+  '.stfolder',
+  '.vault-search',
+  'node_modules',
+]);
 
 export interface IndexEntry {
-  path: string;       // relative to vault root
-  text: string;       // chunk text (for display in results)
-  embedding: string;  // base64-encoded Float32Array (1024 dims)
-  hash: string;       // sha256 prefix for change detection
+  path: string; // relative to vault root
+  text: string; // chunk text (for display in results)
+  embedding: string; // base64-encoded Float32Array (1024 dims)
+  hash: string; // sha256 prefix for change detection
 }
 
 // ─── Ollama helpers ───────────────────────────────────────────────────────────
 
 async function isOllamaRunning(): Promise<boolean> {
   try {
-    const res = await fetch(`${OLLAMA_URL}/api/tags`, { signal: AbortSignal.timeout(2000) });
+    const res = await fetch(`${OLLAMA_URL}/api/tags`, {
+      signal: AbortSignal.timeout(2000),
+    });
     return res.ok;
   } catch {
     return false;
@@ -65,7 +73,10 @@ async function ensureOllama(): Promise<boolean> {
   return false;
 }
 
-async function embed(text: string, abortSignal?: AbortSignal): Promise<Float32Array | null> {
+async function embed(
+  text: string,
+  abortSignal?: AbortSignal,
+): Promise<Float32Array | null> {
   try {
     const signal = abortSignal
       ? AbortSignal.any([abortSignal, AbortSignal.timeout(30000)])
@@ -207,7 +218,9 @@ export async function buildVaultIndex(force = false): Promise<void> {
     const existing = new Map<string, IndexEntry>();
     if (!force && fs.existsSync(INDEX_PATH)) {
       try {
-        const entries = JSON.parse(fs.readFileSync(INDEX_PATH, 'utf-8')) as IndexEntry[];
+        const entries = JSON.parse(
+          fs.readFileSync(INDEX_PATH, 'utf-8'),
+        ) as IndexEntry[];
         for (const e of entries) existing.set(`${e.path}::${e.hash}`, e);
       } catch {
         // corrupt index — rebuild
@@ -239,7 +252,10 @@ export async function buildVaultIndex(force = false): Promise<void> {
       for (const chunk of chunkMarkdown(content)) {
         if (controller.signal.aborted) break;
 
-        const hash = createHash('sha256').update(chunk).digest('hex').slice(0, 16);
+        const hash = createHash('sha256')
+          .update(chunk)
+          .digest('hex')
+          .slice(0, 16);
         const key = `${relPath}::${hash}`;
 
         if (existing.has(key)) {
@@ -251,7 +267,12 @@ export async function buildVaultIndex(force = false): Promise<void> {
         const vec = await embed(chunk, controller.signal);
         if (!vec) continue;
 
-        newEntries.push({ path: relPath, text: chunk, embedding: embeddingToBase64(vec), hash });
+        newEntries.push({
+          path: relPath,
+          text: chunk,
+          embedding: embeddingToBase64(vec),
+          hash,
+        });
         indexStatus.indexed++;
       }
 
@@ -261,7 +282,11 @@ export async function buildVaultIndex(force = false): Promise<void> {
     if (!controller.signal.aborted) {
       fs.writeFileSync(INDEX_PATH, JSON.stringify(newEntries));
       logger.info(
-        { indexed: indexStatus.indexed, skipped: indexStatus.skipped, total: newEntries.length },
+        {
+          indexed: indexStatus.indexed,
+          skipped: indexStatus.skipped,
+          total: newEntries.length,
+        },
         'Vault index updated',
       );
     }
@@ -282,13 +307,18 @@ function scheduleRebuild() {
   // Debounce: wait 10s after last change before rebuilding
   rebuildTimer = setTimeout(() => {
     logger.info('Vault files changed — rebuilding index');
-    buildVaultIndex().catch((err) => logger.error({ err }, 'Index rebuild failed'));
+    buildVaultIndex().catch((err) =>
+      logger.error({ err }, 'Index rebuild failed'),
+    );
   }, 10_000);
 }
 
 export function startVaultWatcher(): void {
   if (!fs.existsSync(VAULT_PATH)) {
-    logger.warn({ path: VAULT_PATH }, 'Vault path not found — watcher not started');
+    logger.warn(
+      { path: VAULT_PATH },
+      'Vault path not found — watcher not started',
+    );
     return;
   }
 
@@ -311,7 +341,9 @@ export function startVaultWatcher(): void {
 export function initVaultIndexer(): void {
   // Build index in background on startup (don't block main startup)
   setImmediate(() => {
-    buildVaultIndex().catch((err) => logger.error({ err }, 'Initial vault index failed'));
+    buildVaultIndex().catch((err) =>
+      logger.error({ err }, 'Initial vault index failed'),
+    );
   });
 
   startVaultWatcher();
