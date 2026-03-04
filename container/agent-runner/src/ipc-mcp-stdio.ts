@@ -280,6 +280,72 @@ Use available_groups.json to find the JID for a group. The folder name must be c
   },
 );
 
+server.tool(
+  'search_vault',
+  'Semantically search the Obsidian vault (second brain). Returns the most relevant notes/sections for any query. Use this as your primary knowledge source before answering questions about the user, their goals, projects, health, relationships, or preferences.',
+  {
+    query: z.string().describe('What to search for — use natural language, e.g. "fitness goals 2026" or "cannabis blog revenue"'),
+    limit: z.number().int().min(1).max(20).default(5).optional().describe('Number of results to return (default 5)'),
+  },
+  async (args) => {
+    const INDEX_PATH = '/workspace/extra/secondbrain/.vault-search/index.json';
+    const limit = args.limit ?? 5;
+
+    if (!fs.existsSync(INDEX_PATH)) {
+      return {
+        content: [{ type: 'text' as const, text: 'Vault index not ready yet. Try again in a minute, or check that Ollama is running on the host.' }],
+      };
+    }
+
+    let entries: Array<{ path: string; text: string; embedding: string }>;
+    try {
+      entries = JSON.parse(fs.readFileSync(INDEX_PATH, 'utf-8'));
+    } catch {
+      return { content: [{ type: 'text' as const, text: 'Failed to read vault index.' }] };
+    }
+
+    // Embed query using Ollama bge-m3 on the host
+    let queryVec: Float32Array;
+    try {
+      const res = await fetch('http://localhost:11434/api/embed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'bge-m3', input: args.query }),
+        signal: AbortSignal.timeout(15000),
+      });
+      const data = (await res.json()) as { embeddings: number[][] };
+      queryVec = new Float32Array(data.embeddings[0]);
+    } catch {
+      return { content: [{ type: 'text' as const, text: 'Could not reach Ollama for query embedding. Is it running on the host?' }] };
+    }
+
+    // Cosine similarity
+    function cosine(a: Float32Array, b: Float32Array): number {
+      let dot = 0, na = 0, nb = 0;
+      for (let i = 0; i < a.length; i++) {
+        dot += a[i] * b[i];
+        na += a[i] * a[i];
+        nb += b[i] * b[i];
+      }
+      return dot / (Math.sqrt(na) * Math.sqrt(nb) + 1e-8);
+    }
+
+    const scored = entries.map((e) => {
+      const vec = new Float32Array(Buffer.from(e.embedding, 'base64').buffer);
+      return { path: e.path, text: e.text, score: cosine(queryVec, vec) };
+    });
+
+    scored.sort((a, b) => b.score - a.score);
+    const top = scored.slice(0, limit);
+
+    const output = top
+      .map((r, i) => `[${i + 1}] ${r.path} (score: ${r.score.toFixed(3)})\n${r.text.slice(0, 500)}${r.text.length > 500 ? '…' : ''}`)
+      .join('\n\n---\n\n');
+
+    return { content: [{ type: 'text' as const, text: output || 'No results found.' }] };
+  },
+);
+
 // Start the stdio transport
 const transport = new StdioServerTransport();
 await server.connect(transport);

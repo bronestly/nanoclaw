@@ -23,6 +23,7 @@ import {
   ensureContainerRuntimeRunning,
 } from './container-runtime.js';
 import {
+  deleteSession,
   getAllChats,
   getAllRegisteredGroups,
   getAllSessions,
@@ -40,6 +41,7 @@ import {
 import { GroupQueue } from './group-queue.js';
 import { resolveGroupFolderPath } from './group-folder.js';
 import { startIpcWatcher } from './ipc.js';
+import { initVaultIndexer } from './vault-indexer.js';
 import { findChannel, formatMessages, formatOutbound } from './router.js';
 import { startSchedulerLoop } from './task-scheduler.js';
 import { Channel, NewMessage, RegisteredGroup } from './types.js';
@@ -451,6 +453,7 @@ async function main(): Promise<void> {
   ensureContainerSystemRunning();
   initDatabase();
   logger.info('Database initialized');
+  initVaultIndexer();
   loadState();
 
   // Graceful shutdown handlers
@@ -463,6 +466,15 @@ async function main(): Promise<void> {
   process.on('SIGTERM', () => shutdown('SIGTERM'));
   process.on('SIGINT', () => shutdown('SIGINT'));
 
+  function clearGroupSession(jid: string): boolean {
+    const group = registeredGroups[jid];
+    if (!group) return false;
+    delete sessions[group.folder];
+    deleteSession(group.folder);
+    logger.info({ jid, folder: group.folder }, 'Session cleared');
+    return true;
+  }
+
   // Channel callbacks (shared by all channels)
   const channelOpts = {
     onMessage: (_chatJid: string, msg: NewMessage) => storeMessage(msg),
@@ -474,6 +486,7 @@ async function main(): Promise<void> {
       isGroup?: boolean,
     ) => storeChatMetadata(chatJid, timestamp, name, channel, isGroup),
     registeredGroups: () => registeredGroups,
+    clearSession: clearGroupSession,
   };
 
   // Create and connect all registered channels.
