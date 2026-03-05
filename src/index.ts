@@ -285,12 +285,12 @@ async function runAgent(
   // Wrap onOutput to track session ID from streamed results
   const wrappedOnOutput = onOutput
     ? async (output: ContainerOutput) => {
-      if (output.newSessionId) {
-        sessions[group.folder] = output.newSessionId;
-        setSession(group.folder, output.newSessionId);
+        if (output.newSessionId) {
+          sessions[group.folder] = output.newSessionId;
+          setSession(group.folder, output.newSessionId);
+        }
+        await onOutput(output);
       }
-      await onOutput(output);
-    }
     : undefined;
 
   try {
@@ -518,9 +518,11 @@ async function main(): Promise<void> {
     if (!mainEntry) return;
     const [adminJid] = mainEntry;
     const channel = findChannel(channels, adminJid);
-    channel?.sendMessage(adminJid, summary).catch((err) =>
-      logger.warn({ err }, 'Failed to send index-complete notification'),
-    );
+    channel
+      ?.sendMessage(adminJid, summary)
+      .catch((err) =>
+        logger.warn({ err }, 'Failed to send index-complete notification'),
+      );
   });
 
   // Start subsystems (independently of connection handler)
@@ -571,7 +573,7 @@ async function main(): Promise<void> {
 const isDirectRun =
   process.argv[1] &&
   new URL(import.meta.url).pathname ===
-  new URL(`file://${process.argv[1]}`).pathname;
+    new URL(`file://${process.argv[1]}`).pathname;
 
 if (isDirectRun) {
   main().catch((err) => {

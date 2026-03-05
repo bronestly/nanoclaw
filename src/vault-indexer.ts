@@ -162,9 +162,7 @@ let currentAbortController: AbortController | null = null;
 let indexCompleteCallback: ((summary: string) => void) | null = null;
 
 /** Register a callback to be called after every successful index build. */
-export function setIndexCompleteCallback(
-  fn: (summary: string) => void,
-): void {
+export function setIndexCompleteCallback(fn: (summary: string) => void): void {
   indexCompleteCallback = fn;
 }
 
