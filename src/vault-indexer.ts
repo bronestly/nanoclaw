@@ -59,7 +59,7 @@ async function ensureOllama(): Promise<boolean> {
   if (await isOllamaRunning()) return true;
 
   logger.info('Starting Ollama...');
-  exec(`${OLLAMA_BIN} serve`);
+  exec(`${OLLAMA_BIN} serve`, { env: { ...process.env, OLLAMA_HOST: '0.0.0.0' } });
 
   for (let i = 0; i < 15; i++) {
     await new Promise((r) => setTimeout(r, 1000));

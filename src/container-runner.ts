@@ -229,6 +229,12 @@ function buildContainerArgs(
   // Pass host timezone so container's local time matches the user's
   args.push('-e', `TZ=${TIMEZONE}`);
 
+  // Apple Container doesn't support host.docker.internal. Use the gateway IP instead.
+  // OLLAMA_HOST on the host is the bind address (e.g. 0.0.0.0) — not usable inside
+  // the container. Use OLLAMA_CONTAINER_HOST to override the URL containers use.
+  const containerOllamaHost = process.env.OLLAMA_CONTAINER_HOST || 'http://192.168.64.1:11434';
+  args.push('-e', `OLLAMA_HOST=${containerOllamaHost}`);
+
   // Git identity for vault commits
   args.push('-e', 'GIT_AUTHOR_NAME=Alina');
   args.push('-e', 'GIT_AUTHOR_EMAIL=andy@nanoclaw.local');
