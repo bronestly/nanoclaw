@@ -338,6 +338,35 @@ export function startVaultWatcher(): void {
 
 // ─── Startup ──────────────────────────────────────────────────────────────────
 
+/** Schedule a full (force) rebuild every night at 04:00 local time. */
+function scheduleNightlyReindex(): void {
+  const now = new Date();
+  const next = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    4, 0, 0, 0, // 04:00:00.000
+  );
+
+  // If 04:00 has already passed today, schedule for tomorrow.
+  if (next <= now) next.setDate(next.getDate() + 1);
+
+  const msUntilNext = next.getTime() - now.getTime();
+  logger.info(
+    { nextRun: next.toISOString(), msUntilNext },
+    'Nightly vault reindex scheduled',
+  );
+
+  setTimeout(() => {
+    logger.info('Running nightly vault reindex (04:00)');
+    buildVaultIndex(true).catch((err) =>
+      logger.error({ err }, 'Nightly vault reindex failed'),
+    );
+    // Reschedule for the next night after this one fires.
+    scheduleNightlyReindex();
+  }, msUntilNext);
+}
+
 export function initVaultIndexer(): void {
   // Build index in background on startup (don't block main startup)
   setImmediate(() => {
@@ -347,4 +376,5 @@ export function initVaultIndexer(): void {
   });
 
   startVaultWatcher();
+  scheduleNightlyReindex();
 }

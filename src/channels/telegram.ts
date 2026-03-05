@@ -84,14 +84,20 @@ export class TelegramChannel implements Channel {
       const url = `https://api.telegram.org/file/bot${this.botToken}/${fileInfo.file_path}`;
       const response = await fetch(url);
       if (!response.ok) {
-        logger.warn({ fileId, status: response.status }, 'Telegram file download failed');
+        logger.warn(
+          { fileId, status: response.status },
+          'Telegram file download failed',
+        );
         return null;
       }
       fs.mkdirSync(destDir, { recursive: true });
       const destPath = path.join(destDir, fileName);
       const buffer = await response.arrayBuffer();
       fs.writeFileSync(destPath, Buffer.from(buffer));
-      logger.info({ destPath, bytes: buffer.byteLength }, 'Telegram attachment downloaded');
+      logger.info(
+        { destPath, bytes: buffer.byteLength },
+        'Telegram attachment downloaded',
+      );
       return `/workspace/group/attachments/${fileName}`;
     } catch (err) {
       logger.warn({ fileId, err }, 'Failed to download Telegram attachment');
@@ -393,8 +399,15 @@ export class TelegramChannel implements Channel {
       if (fileId && fileName) {
         const ts = Date.now();
         const safeFileName = `${ts}_${fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
-        const attachmentsDir = path.join(resolveGroupFolderPath(group.folder), 'attachments');
-        const containerPath = await this.downloadAttachment(fileId, attachmentsDir, safeFileName);
+        const attachmentsDir = path.join(
+          resolveGroupFolderPath(group.folder),
+          'attachments',
+        );
+        const containerPath = await this.downloadAttachment(
+          fileId,
+          attachmentsDir,
+          safeFileName,
+        );
         if (containerPath) {
           content = `${placeholder}${caption}\nFile saved at: ${containerPath}`;
         } else {
@@ -421,7 +434,10 @@ export class TelegramChannel implements Channel {
         is_from_me: false,
       });
 
-      logger.info({ chatJid, sender: senderName, content }, 'Telegram attachment stored');
+      logger.info(
+        { chatJid, sender: senderName, content },
+        'Telegram attachment stored',
+      );
     };
 
     this.bot.on('message:photo', (ctx) => {
@@ -432,7 +448,12 @@ export class TelegramChannel implements Channel {
       storeNonText(ctx, '[Video]', ctx.message.video?.file_id, 'video.mp4'),
     );
     this.bot.on('message:voice', (ctx) =>
-      storeNonText(ctx, '[Voice message]', ctx.message.voice?.file_id, 'voice.ogg'),
+      storeNonText(
+        ctx,
+        '[Voice message]',
+        ctx.message.voice?.file_id,
+        'voice.ogg',
+      ),
     );
     this.bot.on('message:audio', (ctx) => {
       const name = ctx.message.audio?.file_name || 'audio';
@@ -440,7 +461,12 @@ export class TelegramChannel implements Channel {
     });
     this.bot.on('message:document', (ctx) => {
       const name = ctx.message.document?.file_name || 'file';
-      storeNonText(ctx, `[Document: ${name}]`, ctx.message.document?.file_id, name);
+      storeNonText(
+        ctx,
+        `[Document: ${name}]`,
+        ctx.message.document?.file_id,
+        name,
+      );
     });
     this.bot.on('message:sticker', (ctx) => {
       const emoji = ctx.message.sticker?.emoji || '';
