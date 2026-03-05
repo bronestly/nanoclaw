@@ -15,7 +15,10 @@
       "Bash(sqlite3 /Users/reen/assisstants/alina/store/messages.db \".schema registered_groups\")",
       "Bash(log show --predicate 'process == \"node\"' --last 5m 2>/dev/null | grep -i \"nanoclaw\\\\|alina\\\\|admin\\\\|error\\\\|telegram\" | tail -50)",
       "Bash(sqlite3 /Users/reen/assisstants/alina/store/messages.db \"DELETE FROM sessions WHERE group_folder = 'telegram_admin';\" && echo \"Session cleared\")",
-      "Bash(launchctl list | grep nanoclaw 2>&1)"
+      "Bash(launchctl list | grep nanoclaw 2>&1)",
+      "Bash(npx tsx scripts/apply-skill.ts --record .claude/skills/add-ollama-tool 2>&1)",
+      "Bash(ls skills-engine/*.ts)",
+      "Bash(./container/build.sh 2>&1)"
     ]
   }
 }
