@@ -41,7 +41,7 @@ import {
 import { GroupQueue } from './group-queue.js';
 import { resolveGroupFolderPath } from './group-folder.js';
 import { startIpcWatcher } from './ipc.js';
-import { initVaultIndexer } from './vault-indexer.js';
+import { initVaultIndexer, setIndexCompleteCallback } from './vault-indexer.js';
 import { findChannel, formatMessages, formatOutbound } from './router.js';
 import { startSchedulerLoop } from './task-scheduler.js';
 import { Channel, NewMessage, RegisteredGroup } from './types.js';
@@ -285,12 +285,12 @@ async function runAgent(
   // Wrap onOutput to track session ID from streamed results
   const wrappedOnOutput = onOutput
     ? async (output: ContainerOutput) => {
-        if (output.newSessionId) {
-          sessions[group.folder] = output.newSessionId;
-          setSession(group.folder, output.newSessionId);
-        }
-        await onOutput(output);
+      if (output.newSessionId) {
+        sessions[group.folder] = output.newSessionId;
+        setSession(group.folder, output.newSessionId);
       }
+      await onOutput(output);
+    }
     : undefined;
 
   try {
@@ -510,6 +510,19 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
+  // Notify the main (Admin) Telegram topic after every successful vault index.
+  setIndexCompleteCallback((summary) => {
+    const mainEntry = Object.entries(registeredGroups).find(
+      ([jid, g]) => g.isMain && jid.startsWith('tg:'),
+    );
+    if (!mainEntry) return;
+    const [adminJid] = mainEntry;
+    const channel = findChannel(channels, adminJid);
+    channel?.sendMessage(adminJid, summary).catch((err) =>
+      logger.warn({ err }, 'Failed to send index-complete notification'),
+    );
+  });
+
   // Start subsystems (independently of connection handler)
   startSchedulerLoop({
     registeredGroups: () => registeredGroups,
@@ -558,7 +571,7 @@ async function main(): Promise<void> {
 const isDirectRun =
   process.argv[1] &&
   new URL(import.meta.url).pathname ===
-    new URL(`file://${process.argv[1]}`).pathname;
+  new URL(`file://${process.argv[1]}`).pathname;
 
 if (isDirectRun) {
   main().catch((err) => {

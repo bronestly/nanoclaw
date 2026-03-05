@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsx setup/index.ts --step service 2>&1 | tail -20)",
+      "Bash(npx tsx src/db.ts 2>/dev/null; ls src/db* 2>/dev/null)",
+      "Bash(npx tsx -e \"\nimport { setRegisteredGroup, initDatabase } from './src/db.ts';\ninitDatabase\\(\\);\nsetRegisteredGroup\\('tg:-1003343099881', {\n  name: 'general',\n  folder: 'telegram_general',\n  trigger: '@Andy',\n  added_at: new Date\\(\\).toISOString\\(\\),\n  requiresTrigger: false,\n  isMain: true,\n}\\);\nconsole.log\\('Registered'\\);\n\" 2>&1)",
+      "Bash(npx tsx setup/index.ts --step verify 2>&1 | grep -A 30 \"=== NANOCLAW\")",
+      "Bash(find /Users/reen/Documents/secondbrain -name \"*.md\" ! -readable 2>/dev/null | head -5; echo \"Unreadable check done\")",
+      "Bash(npx tsx setup/index.ts --step mounts -- --json '{\"allowedRoots\":[{\"path\":\"/Users/reen/Documents/secondbrain\",\"mode\":\"rw\"}],\"blockedPatterns\":[],\"nonMainReadOnly\":false}' 2>&1 | tail -15)",
+      "Bash(ollama list 2>&1)",
+      "Bash(ls ~/.ollama/models/manifests/registry.ollama.ai/library/bge-m3/ 2>/dev/null\nfind /opt/homebrew /usr/local ~/.local/bin -name \"qdrant*\" 2>/dev/null\npip3 list 2>/dev/null | grep -iE \"qdrant|chroma|faiss|weaviate|sentence.transform|embed\" | head -20\nnpm list -g 2>/dev/null | grep -iE \"qdrant|chroma|embed\" | head -10)",
+      "Bash(npm run build 2>&1 | tail -5)",
+      "Bash(launchctl unload ~/Library/LaunchAgents/com.nanoclaw.plist && launchctl load ~/Library/LaunchAgents/com.nanoclaw.plist && echo \"Restarted\")",
+      "Bash(npx tsx -e \"\nimport { setRegisteredGroup, initDatabase } from './src/db.ts';\ninitDatabase\\(\\);\nsetRegisteredGroup\\('tg:-1003343099881:16', {\n  name: 'Admin',\n  folder: 'telegram_admin',\n  trigger: '@Andy',\n  added_at: new Date\\(\\).toISOString\\(\\),\n  requiresTrigger: false,\n  isMain: true,\n  containerConfig: {\n    additionalMounts: [\n      {\n        hostPath: '/Users/reen/Documents/secondbrain',\n        containerPath: 'secondbrain',\n        readonly: false,\n      }\n    ]\n  }\n}\\);\nconsole.log\\('Registered'\\);\n\" 2>&1 | tail -3)",
+      "Bash(sqlite3 /Users/reen/assisstants/alina/store/messages.db \".schema registered_groups\")",
+      "Bash(log show --predicate 'process == \"node\"' --last 5m 2>/dev/null | grep -i \"nanoclaw\\\\|alina\\\\|admin\\\\|error\\\\|telegram\" | tail -50)",
+      "Bash(sqlite3 /Users/reen/assisstants/alina/store/messages.db \"DELETE FROM sessions WHERE group_folder = 'telegram_admin';\" && echo \"Session cleared\")"
+    ]
+  }
+}

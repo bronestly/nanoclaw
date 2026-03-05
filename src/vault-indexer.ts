@@ -159,6 +159,14 @@ function walkVault(): string[] {
 
 let indexing = false;
 let currentAbortController: AbortController | null = null;
+let indexCompleteCallback: ((summary: string) => void) | null = null;
+
+/** Register a callback to be called after every successful index build. */
+export function setIndexCompleteCallback(
+  fn: (summary: string) => void,
+): void {
+  indexCompleteCallback = fn;
+}
 
 export interface IndexStatus {
   running: boolean;
@@ -289,6 +297,16 @@ export async function buildVaultIndex(force = false): Promise<void> {
         },
         'Vault index updated',
       );
+      if (indexCompleteCallback) {
+        const summary =
+          `✅ Vault index complete — ${newEntries.length} chunks total` +
+          ` (${indexStatus.indexed} new, ${indexStatus.skipped} cached)`;
+        try {
+          indexCompleteCallback(summary);
+        } catch (err) {
+          logger.warn({ err }, 'indexCompleteCallback threw');
+        }
+      }
     }
   } finally {
     indexing = false;
