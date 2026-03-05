@@ -345,7 +345,10 @@ function scheduleNightlyReindex(): void {
     now.getFullYear(),
     now.getMonth(),
     now.getDate(),
-    4, 0, 0, 0, // 04:00:00.000
+    4,
+    0,
+    0,
+    0, // 04:00:00.000
   );
 
   // If 04:00 has already passed today, schedule for tomorrow.
