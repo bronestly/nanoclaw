@@ -216,7 +216,7 @@ function buildVolumeMounts(
  * Secrets are never written to disk or mounted as files.
  */
 function readSecrets(): Record<string, string> {
-  return readEnvFile(['CLAUDE_CODE_OAUTH_TOKEN', 'ANTHROPIC_API_KEY']);
+  return readEnvFile(['CLAUDE_CODE_OAUTH_TOKEN', 'ANTHROPIC_API_KEY', 'PARALLEL_API_KEY']);
 }
 
 function buildContainerArgs(
@@ -232,7 +232,8 @@ function buildContainerArgs(
   // Apple Container doesn't support host.docker.internal. Use the gateway IP instead.
   // OLLAMA_HOST on the host is the bind address (e.g. 0.0.0.0) — not usable inside
   // the container. Use OLLAMA_CONTAINER_HOST to override the URL containers use.
-  const containerOllamaHost = process.env.OLLAMA_CONTAINER_HOST || 'http://192.168.64.1:11434';
+  const containerOllamaHost =
+    process.env.OLLAMA_CONTAINER_HOST || 'http://192.168.64.1:11434';
   args.push('-e', `OLLAMA_HOST=${containerOllamaHost}`);
 
   // Git identity for vault commits

@@ -438,30 +438,51 @@ async function runQuery(
         'mcp__nanoclaw__*',
         'mcp__gmail__*',
         'mcp__ollama__*',
+        'mcp__parallel-search__*',
+        'mcp__parallel-task__*',
       ],
       env: sdkEnv,
       permissionMode: 'bypassPermissions',
       allowDangerouslySkipPermissions: true,
       settingSources: ['project', 'user'],
-      mcpServers: {
-        nanoclaw: {
-          command: 'node',
-          args: [mcpServerPath],
-          env: {
-            NANOCLAW_CHAT_JID: containerInput.chatJid,
-            NANOCLAW_GROUP_FOLDER: containerInput.groupFolder,
-            NANOCLAW_IS_MAIN: containerInput.isMain ? '1' : '0',
+      mcpServers: (() => {
+        const servers: Record<string, any> = {
+          nanoclaw: {
+            command: 'node',
+            args: [mcpServerPath],
+            env: {
+              NANOCLAW_CHAT_JID: containerInput.chatJid,
+              NANOCLAW_GROUP_FOLDER: containerInput.groupFolder,
+              NANOCLAW_IS_MAIN: containerInput.isMain ? '1' : '0',
+            },
           },
-        },
-        gmail: {
-          command: 'npx',
-          args: ['-y', '@gongrzhe/server-gmail-autoauth-mcp'],
-        },
-        ollama: {
-          command: 'node',
-          args: [path.join(path.dirname(mcpServerPath), 'ollama-mcp-stdio.js')],
-        },
-      },
+          gmail: {
+            command: 'npx',
+            args: ['-y', '@gongrzhe/server-gmail-autoauth-mcp'],
+          },
+          ollama: {
+            command: 'node',
+            args: [path.join(path.dirname(mcpServerPath), 'ollama-mcp-stdio.js')],
+          },
+        };
+        const parallelApiKey = sdkEnv.PARALLEL_API_KEY;
+        if (parallelApiKey) {
+          servers['parallel-search'] = {
+            type: 'http',
+            url: 'https://search-mcp.parallel.ai/mcp',
+            headers: { 'Authorization': `Bearer ${parallelApiKey}` },
+          };
+          servers['parallel-task'] = {
+            type: 'http',
+            url: 'https://task-mcp.parallel.ai/mcp',
+            headers: { 'Authorization': `Bearer ${parallelApiKey}` },
+          };
+          log('Parallel AI MCP servers configured');
+        } else {
+          log('PARALLEL_API_KEY not set, skipping Parallel AI integration');
+        }
+        return servers;
+      })(),
       hooks: {
         PreCompact: [{ hooks: [createPreCompactHook(containerInput.assistantName)] }],
         PreToolUse: [{ matcher: 'Bash', hooks: [createSanitizeBashHook()] }],
