@@ -512,12 +512,13 @@ export class TelegramChannel implements Channel {
     });
     this.bot.on('message:document', (ctx) => {
       const name = ctx.message.document?.file_name || 'file';
-      storeNonText(
-        ctx,
-        `[Document: ${name}]`,
-        ctx.message.document?.file_id,
-        name,
-      );
+      const mime = ctx.message.document?.mime_type || '';
+      const isPdf =
+        mime === 'application/pdf' || name.toLowerCase().endsWith('.pdf');
+      const placeholder = isPdf
+        ? `[PDF: ${name}] (use pdf-reader to extract text)`
+        : `[Document: ${name}]`;
+      storeNonText(ctx, placeholder, ctx.message.document?.file_id, name);
     });
     this.bot.on('message:sticker', (ctx) => {
       const emoji = ctx.message.sticker?.emoji || '';
