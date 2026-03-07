@@ -105,6 +105,53 @@ export class TelegramChannel implements Channel {
     }
   }
 
+  /**
+   * Extract a quoted-message prefix from reply_to_message.
+   * Returns a string like `[Quoting SenderName: "...text..."]\n` or empty string.
+   * The prefix is intentionally brief — the full prior message already lives in
+   * the conversation history that Claude receives, so this is just a pointer.
+   */
+  private buildReplyPrefix(replyTo: any): string {
+    if (!replyTo) return '';
+
+    const senderName =
+      replyTo.from?.first_name ||
+      replyTo.from?.username ||
+      replyTo.from?.id?.toString() ||
+      'Someone';
+
+    // Prefer text; fall back to caption (photos, docs, etc.); then a type label
+    let quotedText: string;
+    if (replyTo.text) {
+      quotedText = replyTo.text;
+    } else if (replyTo.caption) {
+      quotedText = replyTo.caption;
+    } else if (replyTo.photo) {
+      quotedText = '[Photo]';
+    } else if (replyTo.video) {
+      quotedText = '[Video]';
+    } else if (replyTo.voice) {
+      quotedText = '[Voice message]';
+    } else if (replyTo.audio) {
+      quotedText = `[Audio: ${replyTo.audio.file_name || 'audio'}]`;
+    } else if (replyTo.document) {
+      quotedText = `[Document: ${replyTo.document.file_name || 'file'}]`;
+    } else if (replyTo.sticker) {
+      quotedText = `[Sticker ${replyTo.sticker.emoji || ''}]`;
+    } else {
+      quotedText = '[message]';
+    }
+
+    // Truncate long quotes so they don't bloat the prompt
+    const MAX_QUOTE = 300;
+    const truncated =
+      quotedText.length > MAX_QUOTE
+        ? quotedText.slice(0, MAX_QUOTE) + '…'
+        : quotedText;
+
+    return `[In reply to ${senderName}: "${truncated}"]\n`;
+  }
+
   async connect(): Promise<void> {
     this.bot = new Bot(this.botToken);
 
@@ -291,7 +338,10 @@ export class TelegramChannel implements Channel {
       const topicJid = buildTgJid(ctx.chat.id, threadId);
       const baseJid = `tg:${ctx.chat.id}`;
 
-      let content = ctx.message.text;
+      const replyPrefix = this.buildReplyPrefix(
+        (ctx.message as any).reply_to_message,
+      );
+      let content = replyPrefix + ctx.message.text;
       const timestamp = new Date(ctx.message.date * 1000).toISOString();
       const senderName =
         ctx.from?.first_name ||
@@ -393,8 +443,9 @@ export class TelegramChannel implements Channel {
         ctx.from?.id?.toString() ||
         'Unknown';
       const caption = ctx.message.caption ? ` ${ctx.message.caption}` : '';
+      const replyPrefix = this.buildReplyPrefix(ctx.message.reply_to_message);
 
-      let content = `${placeholder}${caption}`;
+      let content = `${replyPrefix}${placeholder}${caption}`;
 
       if (fileId && fileName) {
         const ts = Date.now();
