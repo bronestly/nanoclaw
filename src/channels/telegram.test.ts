@@ -635,7 +635,9 @@ describe('TelegramChannel', () => {
       await channel.connect();
 
       const ctx = createMediaCtx({
-        extra: { document: { file_name: 'screenshot.png', mime_type: 'image/png' } },
+        extra: {
+          document: { file_name: 'screenshot.png', mime_type: 'image/png' },
+        },
       });
       await triggerMediaMessage('message:document', ctx);
 
