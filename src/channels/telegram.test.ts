@@ -623,7 +623,25 @@ describe('TelegramChannel', () => {
 
       expect(opts.onMessage).toHaveBeenCalledWith(
         'tg:100200300',
-        expect.objectContaining({ content: '[Document: report.pdf]' }),
+        expect.objectContaining({
+          content: '[PDF: report.pdf] (use pdf-reader to extract text)',
+        }),
+      );
+    });
+
+    it('stores image document as [Image:] placeholder', async () => {
+      const opts = createTestOpts();
+      const channel = new TelegramChannel('test-token', opts);
+      await channel.connect();
+
+      const ctx = createMediaCtx({
+        extra: { document: { file_name: 'screenshot.png', mime_type: 'image/png' } },
+      });
+      await triggerMediaMessage('message:document', ctx);
+
+      expect(opts.onMessage).toHaveBeenCalledWith(
+        'tg:100200300',
+        expect.objectContaining({ content: '[Image: screenshot.png]' }),
       );
     });
 
