@@ -174,7 +174,7 @@ function buildVolumeMounts(
     mounts.push({
       hostPath: gogConfigDir,
       containerPath: '/root/.config/gogcli',
-      readonly: false,
+      readonly: true, // path contains spaces — use --mount format; tokens are read-only
     });
   }
 
