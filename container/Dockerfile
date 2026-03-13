@@ -52,6 +52,13 @@ RUN npm run build
 COPY skills/pdf-reader/pdf-reader /usr/local/bin/pdf-reader
 RUN chmod +x /usr/local/bin/pdf-reader
 
+# Install gogcli (Google Workspace CLI) — use TARGETARCH for multi-platform support
+ARG TARGETARCH
+RUN ARCH="${TARGETARCH:-amd64}" && \
+    curl -fsSL "https://github.com/steipete/gogcli/releases/download/v0.12.0/gogcli_0.12.0_linux_${ARCH}.tar.gz" \
+    | tar -xz -C /usr/local/bin gog \
+    && chmod +x /usr/local/bin/gog
+
 # Create workspace directories
 RUN mkdir -p /workspace/group /workspace/global /workspace/extra /workspace/ipc/messages /workspace/ipc/tasks /workspace/ipc/input
 

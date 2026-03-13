@@ -79,18 +79,6 @@ function buildVolumeMounts(
     });
 
 
-    // Shadow .env so the agent cannot read secrets from the mounted project root.
-    // Credentials are injected by the credential proxy, never exposed to containers.
-    const envFile = path.join(projectRoot, '.env');
-    if (fs.existsSync(envFile)) {
-      mounts.push({
-        hostPath: '/dev/null',
-        containerPath: '/workspace/project/.env',
-        readonly: true,
-      });
-    }
-
-
     // Main also gets its group folder as the working directory
     mounts.push({
       hostPath: groupDir,
@@ -177,6 +165,19 @@ function buildVolumeMounts(
     });
   }
 
+  // gogcli credentials (macOS uses ~/Library/Application Support/gogcli)
+  const gogConfigDir =
+    process.platform === 'darwin'
+      ? path.join(homeDir, 'Library', 'Application Support', 'gogcli')
+      : path.join(homeDir, '.config', 'gogcli');
+  if (fs.existsSync(gogConfigDir)) {
+    mounts.push({
+      hostPath: gogConfigDir,
+      containerPath: '/root/.config/gogcli',
+      readonly: false,
+    });
+  }
+
   // Per-group IPC namespace: each group gets its own IPC directory
   // This prevents cross-group privilege escalation via IPC
   const groupIpcDir = resolveGroupIpcPath(group.folder);
@@ -226,8 +227,6 @@ function buildVolumeMounts(
   return mounts;
 }
 
-
-
 function buildContainerArgs(
   mounts: VolumeMount[],
   containerName: string,
@@ -262,8 +261,14 @@ function buildContainerArgs(
   // OLLAMA_HOST on the host is the bind address (e.g. 0.0.0.0) — not usable inside
   // the container. Use OLLAMA_CONTAINER_HOST to override the URL containers use.
   const containerOllamaHost =
-    process.env.OLLAMA_CONTAINER_HOST || `http://${CONTAINER_HOST_GATEWAY}:11434`;
+    process.env.OLLAMA_CONTAINER_HOST ||
+    `http://${CONTAINER_HOST_GATEWAY}:11434`;
   args.push('-e', `OLLAMA_HOST=${containerOllamaHost}`);
+
+  // gogcli keyring passphrase (file keyring backend requires this when no TTY)
+  if (process.env.GOG_KEYRING_PASSWORD) {
+    args.push('-e', `GOG_KEYRING_PASSWORD=${process.env.GOG_KEYRING_PASSWORD}`);
+  }
 
   // Git identity for vault commits
   args.push('-e', 'GIT_AUTHOR_NAME=Alina');
