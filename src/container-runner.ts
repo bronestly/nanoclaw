@@ -19,6 +19,7 @@ import {
 } from './config.js';
 import { resolveGroupFolderPath, resolveGroupIpcPath } from './group-folder.js';
 import { logger } from './logger.js';
+import { readEnvFile } from './env.js';
 import {
   CONTAINER_HOST_GATEWAY,
   CONTAINER_RUNTIME_BIN,
@@ -77,7 +78,6 @@ function buildVolumeMounts(
       containerPath: '/workspace/project',
       readonly: true,
     });
-
 
     // Main also gets its group folder as the working directory
     mounts.push({
@@ -266,8 +266,9 @@ function buildContainerArgs(
   args.push('-e', `OLLAMA_HOST=${containerOllamaHost}`);
 
   // gogcli keyring passphrase (file keyring backend requires this when no TTY)
-  if (process.env.GOG_KEYRING_PASSWORD) {
-    args.push('-e', `GOG_KEYRING_PASSWORD=${process.env.GOG_KEYRING_PASSWORD}`);
+  const { GOG_KEYRING_PASSWORD } = readEnvFile(['GOG_KEYRING_PASSWORD']);
+  if (GOG_KEYRING_PASSWORD) {
+    args.push('-e', `GOG_KEYRING_PASSWORD=${GOG_KEYRING_PASSWORD}`);
   }
 
   // Git identity for vault commits
