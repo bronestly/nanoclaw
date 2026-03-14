@@ -46,7 +46,10 @@
       "Bash(curl -s --max-time 5 http://localhost:11434/api/tags 2>&1 | head -5)",
       "Bash(ls -t /Users/reen/assisstants/alina/groups/*/logs/*.log 2>/dev/null | head -20)",
       "Bash(grep -rl \"ollama\\\\|semantic\\\\|embedding\\\\|bge\" /Users/reen/assisstants/alina/groups/*/logs/ 2>/dev/null | sort -t/ -k7 -r | head -5)",
-      "Bash(container run --rm --entrypoint bash nanoclaw-agent -c \"curl -s --max-time 5 http://192.168.64.1:11434/api/tags 2>&1 | head -3\" 2>&1)"
+      "Bash(container run --rm --entrypoint bash nanoclaw-agent -c \"curl -s --max-time 5 http://192.168.64.1:11434/api/tags 2>&1 | head -3\" 2>&1)",
+      "Bash(git fetch upstream --prune 2>&1 && git branch -r | grep upstream/)",
+      "Bash(npm test 2>&1)",
+      "Bash(launchctl unload ~/Library/LaunchAgents/com.nanoclaw.plist && launchctl load ~/Library/LaunchAgents/com.nanoclaw.plist)"
     ]
   }
 }

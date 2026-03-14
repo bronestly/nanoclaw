@@ -173,7 +173,7 @@ function buildVolumeMounts(
   if (fs.existsSync(gogConfigDir)) {
     mounts.push({
       hostPath: gogConfigDir,
-      containerPath: '/root/.config/gogcli',
+      containerPath: '/home/node/.config/gogcli',
       readonly: true, // path contains spaces — use --mount format; tokens are read-only
     });
   }

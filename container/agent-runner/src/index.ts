@@ -259,6 +259,44 @@ function formatTranscriptMarkdown(messages: ParsedMessage[], title?: string | nu
 }
 
 /**
+ * Build a token/cost/context footer for agent responses.
+ */
+function buildMetaFooter(msg: {
+  total_cost_usd?: number;
+  modelUsage?: Record<string, {
+    inputTokens?: number;
+    outputTokens?: number;
+    contextWindow?: number;
+  }>;
+}): string {
+  const usage = msg.modelUsage || {};
+  const models = Object.keys(usage)
+    .map(m => m.replace(/^claude-/, ''))
+    .join(', ') || 'unknown';
+
+  let totalIn = 0;
+  let totalOut = 0;
+  let maxWindow = 0;
+
+  for (const u of Object.values(usage)) {
+    totalIn += u.inputTokens ?? 0;
+    totalOut += u.outputTokens ?? 0;
+    if ((u.contextWindow ?? 0) > maxWindow) maxWindow = u.contextWindow ?? 0;
+  }
+
+  const contextUsed = totalIn + totalOut;
+  const pct = maxWindow > 0 ? Math.round((contextUsed / maxWindow) * 100) : 0;
+  const cost = msg.total_cost_usd ?? 0;
+
+  return (
+    '\n\n<code>── meta ──────────────────\n' +
+    `🤖 ${models}\n` +
+    `📥 ${totalIn.toLocaleString()} in  📤 ${totalOut.toLocaleString()} out  🪟 ${contextUsed.toLocaleString()} / ${maxWindow.toLocaleString()} (${pct}%)\n` +
+    `💰 $${cost.toFixed(4)}</code>`
+  );
+}
+
+/**
  * Check for _close sentinel.
  */
 function shouldClose(): boolean {
@@ -485,9 +523,17 @@ async function runQuery(
       resultCount++;
       const textResult = 'result' in message ? (message as { result?: string }).result : null;
       log(`Result #${resultCount}: subtype=${message.subtype}${textResult ? ` text=${textResult.slice(0, 200)}` : ''}`);
+      let finalResult: string | null = textResult || null;
+      if (message.subtype === 'success' && textResult) {
+        const msg = message as {
+          total_cost_usd?: number;
+          modelUsage?: Record<string, { inputTokens?: number; outputTokens?: number; contextWindow?: number }>;
+        };
+        finalResult = textResult + buildMetaFooter(msg);
+      }
       writeOutput({
         status: 'success',
-        result: textResult || null,
+        result: finalResult,
         newSessionId
       });
     }
