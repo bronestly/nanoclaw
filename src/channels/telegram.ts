@@ -51,6 +51,7 @@ export interface TelegramChannelOpts {
   onChatMetadata: OnChatMetadata;
   registeredGroups: () => Record<string, RegisteredGroup>;
   clearSession?: (jid: string) => boolean;
+  killContainer?: (jid: string) => boolean;
 }
 
 export class TelegramChannel implements Channel {
@@ -312,6 +313,27 @@ export class TelegramChannel implements Channel {
         cleared
           ? 'Context cleared. The next message will start a fresh session.'
           : 'Nothing to clear.',
+      );
+    });
+
+    // /reset_container — kill the active container for this chat's group
+    this.bot.command('reset_container', (ctx) => {
+      const threadId = (ctx.message as any)?.message_thread_id as
+        | number
+        | undefined;
+      const topicJid = buildTgJid(ctx.chat.id, threadId);
+      const baseJid = `tg:${ctx.chat.id}`;
+      const groups = this.opts.registeredGroups();
+      const chatJid = groups[topicJid] ? topicJid : baseJid;
+      if (!groups[chatJid]) {
+        ctx.reply('This chat is not registered.');
+        return;
+      }
+      const killed = this.opts.killContainer?.(chatJid);
+      ctx.reply(
+        killed
+          ? 'Container stopped. The next message will spawn a fresh one.'
+          : 'No active container to stop.',
       );
     });
 
@@ -585,6 +607,10 @@ export class TelegramChannel implements Channel {
       {
         command: 'clear_context',
         description: "Clear the agent's session context for this topic",
+      },
+      {
+        command: 'reset_container',
+        description: 'Kill the active container (spawns fresh on next message)',
       },
       {
         command: 'reload_commands',

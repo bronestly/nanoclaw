@@ -266,9 +266,15 @@ function buildContainerArgs(
   args.push('-e', `OLLAMA_HOST=${containerOllamaHost}`);
 
   // gogcli keyring passphrase (file keyring backend requires this when no TTY)
-  const { GOG_KEYRING_PASSWORD } = readEnvFile(['GOG_KEYRING_PASSWORD']);
+  const { GOG_KEYRING_PASSWORD, PARALLEL_API_KEY } = readEnvFile([
+    'GOG_KEYRING_PASSWORD',
+    'PARALLEL_API_KEY',
+  ]);
   if (GOG_KEYRING_PASSWORD) {
     args.push('-e', `GOG_KEYRING_PASSWORD=${GOG_KEYRING_PASSWORD}`);
+  }
+  if (PARALLEL_API_KEY) {
+    args.push('-e', `PARALLEL_API_KEY=${PARALLEL_API_KEY}`);
   }
 
   // Git identity for vault commits

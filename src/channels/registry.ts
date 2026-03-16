@@ -10,6 +10,7 @@ export interface ChannelOpts {
   onChatMetadata: OnChatMetadata;
   registeredGroups: () => Record<string, RegisteredGroup>;
   clearSession?: (jid: string) => boolean;
+  killContainer?: (jid: string) => boolean;
 }
 
 export type ChannelFactory = (opts: ChannelOpts) => Channel | null;

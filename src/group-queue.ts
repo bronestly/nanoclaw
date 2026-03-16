@@ -1,9 +1,10 @@
-import { ChildProcess } from 'child_process';
+import { ChildProcess, exec } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
 import { DATA_DIR, MAX_CONCURRENT_CONTAINERS } from './config.js';
 import { logger } from './logger.js';
+import { stopContainer } from './container-runtime.js';
 
 interface QueuedTask {
   id: string;
@@ -175,6 +176,26 @@ export class GroupQueue {
     } catch {
       return false;
     }
+  }
+
+  /**
+   * Forcibly stop the active container for a group.
+   * Returns true if a container was found and stop was initiated.
+   */
+  killContainer(groupJid: string): boolean {
+    const state = this.groups.get(groupJid);
+    if (!state?.active || !state.containerName) return false;
+
+    const containerName = state.containerName;
+    exec(stopContainer(containerName), { timeout: 15000 }, (err) => {
+      if (err) {
+        logger.warn(
+          { groupJid, containerName, err },
+          'Failed to stop container via kill command',
+        );
+      }
+    });
+    return true;
   }
 
   /**

@@ -530,6 +530,7 @@ async function main(): Promise<void> {
     ) => storeChatMetadata(chatJid, timestamp, name, channel, isGroup),
     registeredGroups: () => registeredGroups,
     clearSession: clearGroupSession,
+    killContainer: (jid: string) => queue.killContainer(jid),
   };
 
   // Create and connect all registered channels.
