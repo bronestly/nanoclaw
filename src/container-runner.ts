@@ -171,10 +171,20 @@ function buildVolumeMounts(
       ? path.join(homeDir, 'Library', 'Application Support', 'gogcli')
       : path.join(homeDir, '.config', 'gogcli');
   if (fs.existsSync(gogConfigDir)) {
+    // Mount the config dir read-only to protect client credentials (credentials-*.json, config.json).
+    // Then override just the keyring subdirectory as writable so tokens can be refreshed
+    // and the reauth flow can write its temporary state file.
     mounts.push({
       hostPath: gogConfigDir,
       containerPath: '/home/node/.config/gogcli',
-      readonly: true, // path contains spaces — use --mount format; tokens are read-only
+      readonly: true,
+    });
+    const gogKeyringDir = path.join(gogConfigDir, 'keyring');
+    fs.mkdirSync(gogKeyringDir, { recursive: true });
+    mounts.push({
+      hostPath: gogKeyringDir,
+      containerPath: '/home/node/.config/gogcli/keyring',
+      readonly: false,
     });
   }
 
