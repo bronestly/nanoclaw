@@ -360,7 +360,8 @@ server.tool(
     // Embed query using Ollama bge-m3 on the host
     let queryVec: Float32Array;
     try {
-      const res = await fetch('http://localhost:11434/api/embed', {
+      const ollamaHost = process.env.OLLAMA_HOST || 'http://host.docker.internal:11434';
+      const res = await fetch(`${ollamaHost}/api/embed`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: 'bge-m3', input: args.query }),

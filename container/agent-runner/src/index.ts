@@ -467,6 +467,7 @@ async function runQuery(
               NANOCLAW_CHAT_JID: containerInput.chatJid,
               NANOCLAW_GROUP_FOLDER: containerInput.groupFolder,
               NANOCLAW_IS_MAIN: containerInput.isMain ? '1' : '0',
+              OLLAMA_HOST: process.env.OLLAMA_HOST,
             },
           },
           gmail: {
