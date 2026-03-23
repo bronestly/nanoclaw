@@ -276,7 +276,12 @@ function buildContainerArgs(
   args.push('-e', `OLLAMA_HOST=${containerOllamaHost}`);
 
   // gogcli keyring passphrase (file keyring backend requires this when no TTY)
-  const { GOG_KEYRING_PASSWORD, PARALLEL_API_KEY, BROWSERBASE_API_KEY, BROWSERBASE_PROJECT_ID } = readEnvFile([
+  const {
+    GOG_KEYRING_PASSWORD,
+    PARALLEL_API_KEY,
+    BROWSERBASE_API_KEY,
+    BROWSERBASE_PROJECT_ID,
+  } = readEnvFile([
     'GOG_KEYRING_PASSWORD',
     'PARALLEL_API_KEY',
     'BROWSERBASE_API_KEY',
