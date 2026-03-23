@@ -502,6 +502,7 @@ async function main(): Promise<void> {
     if (!group) return false;
     delete sessions[group.folder];
     deleteSession(group.folder);
+    queue.killContainer(jid);
     logger.info({ jid, folder: group.folder }, 'Session cleared');
     return true;
   }
