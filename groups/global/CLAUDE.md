@@ -126,14 +126,28 @@ When you learn something important:
 
 ## Message Formatting
 
-Messages are sent via Telegram with HTML parse mode. Use these HTML tags — nothing else:
+Format messages based on the channel you're responding to. Check your group folder name:
 
-- Bold: <b>text</b>
-- Italic: <i>text</i>
-- Code (inline): <code>text</code>
-- Code block: <pre>text</pre>
-- Bullet points: • (Unicode bullet, not markdown -)
+### Slack channels (folder starts with `slack_`)
 
-Never use markdown syntax: no ##, no **, no __, no *, no `, no ```.
-Never use [link](url) syntax.
-No headings — use <b>bold</b> as a section label instead.
+Use Slack mrkdwn syntax. Run `/slack-formatting` for the full reference. Key rules:
+- `*bold*` (single asterisks)
+- `_italic_` (underscores)
+- `<https://url|link text>` for links (NOT `[text](url)`)
+- `•` bullets (no numbered lists)
+- `:emoji:` shortcodes
+- `>` for block quotes
+- No `##` headings — use `*Bold text*` instead
+
+### WhatsApp/Telegram channels (folder starts with `whatsapp_` or `telegram_`)
+
+- `*bold*` (single asterisks, NEVER **double**)
+- `_italic_` (underscores)
+- `•` bullet points
+- ` ``` ` code blocks
+
+No `##` headings. No `[links](url)`. No `**double stars**`.
+
+### Discord channels (folder starts with `discord_`)
+
+Standard Markdown works: `**bold**`, `*italic*`, `[links](url)`, `# headings`.
