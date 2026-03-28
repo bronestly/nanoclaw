@@ -20,6 +20,62 @@ import {
   RegisteredGroup,
 } from '../types.js';
 
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/** Apply markdown formatting rules on plain text segments (HTML already escaped). */
+function applyMarkdown(text: string): string {
+  let s = escapeHtml(text);
+  // Headers → bold
+  s = s.replace(/^#{1,6} +(.+)$/gm, '<b>$1</b>');
+  // Bold (**text** or __text__)
+  s = s.replace(/\*\*([^*\n]+)\*\*/g, '<b>$1</b>');
+  s = s.replace(/__([^_\n]+)__/g, '<b>$1</b>');
+  // Italic (*text* or _text_, after bold to avoid conflict)
+  s = s.replace(/\*([^*\n]+)\*/g, '<i>$1</i>');
+  s = s.replace(/_([^_\n]+)_/g, '<i>$1</i>');
+  // Strikethrough
+  s = s.replace(/~~([^~\n]+)~~/g, '<s>$1</s>');
+  // Links
+  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+  return s;
+}
+
+/** Process inline code within a non-code-block segment. */
+function convertInline(text: string): string {
+  const result: string[] = [];
+  const inlineCodeRe = /`([^`\n]+)`/g;
+  let last = 0;
+  for (const m of text.matchAll(inlineCodeRe)) {
+    if (m.index! > last) result.push(applyMarkdown(text.slice(last, m.index)));
+    result.push(`<code>${escapeHtml(m[1])}</code>`);
+    last = m.index! + m[0].length;
+  }
+  if (last < text.length) result.push(applyMarkdown(text.slice(last)));
+  return result.join('');
+}
+
+/** Convert Markdown text to Telegram-compatible HTML. */
+function markdownToTelegramHtml(md: string): string {
+  const result: string[] = [];
+  const codeBlockRe = /```(\w*)\n?([\s\S]*?)```/g;
+  let last = 0;
+  for (const m of md.matchAll(codeBlockRe)) {
+    if (m.index! > last) result.push(convertInline(md.slice(last, m.index)));
+    const code = escapeHtml(m[2].replace(/\n$/, ''));
+    const lang = m[1];
+    result.push(
+      lang
+        ? `<pre><code class="language-${lang}">${code}</code></pre>`
+        : `<pre>${code}</pre>`,
+    );
+    last = m.index! + m[0].length;
+  }
+  if (last < md.length) result.push(convertInline(md.slice(last)));
+  return result.join('');
+}
+
 /**
  * Parse a Telegram JID into chat ID and optional topic thread ID.
  * Format: "tg:{chatId}" or "tg:{chatId}:{threadId}"
@@ -656,15 +712,17 @@ export class TelegramChannel implements Channel {
         parse_mode: 'HTML' as const,
       };
 
+      const html = markdownToTelegramHtml(text);
+
       // Telegram has a 4096 character limit per message — split if needed.
       // If HTML parsing fails (malformed tags), retry as plain text.
       const MAX_LENGTH = 4096;
       const chunks =
-        text.length <= MAX_LENGTH
-          ? [text]
+        html.length <= MAX_LENGTH
+          ? [html]
           : Array.from(
-              { length: Math.ceil(text.length / MAX_LENGTH) },
-              (_, i) => text.slice(i * MAX_LENGTH, (i + 1) * MAX_LENGTH),
+              { length: Math.ceil(html.length / MAX_LENGTH) },
+              (_, i) => html.slice(i * MAX_LENGTH, (i + 1) * MAX_LENGTH),
             );
 
       for (const chunk of chunks) {
